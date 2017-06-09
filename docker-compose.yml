@@ -1,0 +1,52 @@
+version: '2'
+services: 
+   nextflow-elasticsearch:
+     image: elasticsearch:latest
+    #  network_mode: "host"
+     ports: 
+      - "9200:9200"
+      - "9300:9300"
+     container_name: nextflow-elasticsearch
+     volumes:
+      - /var/es/config:/usr/share/elasticsearch/config
+      - /var/es/esdata:/user/share/elasticsearch/data
+     mem_limit: 6G
+   nextflow-statsd:
+     image: registry.gitlab.com/nextflow/nextflow-statsd:latest
+     depends_on:
+      - nextflow-elasticsearch
+     environment:
+      - ES_PORT_9200_TCP_ADDR=nextflow-elasticsearch
+      - ES_PORT_9200_TCP_PORT=9200
+     ports: 
+      - 8125:8125/udp
+      - 8126:8126
+   nextflow-kibana:
+     image: kibana:latest
+     depends_on:
+      - nextflow-elasticsearch
+     links:
+      - nextflow-elasticsearch:elasticsearch
+     ports: 
+      - "5601:5601"
+     container_name: nextflow-kibana
+     mem_limit: 1G
+   nextflow-grafana:
+     image: registry.gitlab.com/nextflow/nextflow-grafana:0.0.2
+     depends_on:
+      - nextflow-elasticsearch
+     environment:
+      - "GF_USERS_DEFAULT_THEME=light"
+      - "GF_INSTALL_PLUGINS=grafana-clock-panel,grafana-piechart-panel"
+     ports: 
+      - "2000:3000"
+     container_name: nextflow-grafana
+     mem_limit: 200M
+
+
+
+networks:
+  default:
+    external:
+      name: nextflow
+
